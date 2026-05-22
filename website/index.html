@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiMo Reasoning Playground — Explore How AI Thinks</title>
+<style>
+:root {
+  --bg: #0a0a1a;
+  --surface: #12122a;
+  --panel: #1a1a35;
+  --border: #2a2a4a;
+  --accent: #6c63ff;
+  --accent-glow: rgba(108, 99, 255, 0.15);
+  --cyan: #00bcd4;
+  --green: #4caf50;
+  --text: #e8e8f0;
+  --dim: #8888a0;
+  --radius: 16px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Nav ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(10, 10, 26, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+nav .logo { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+nav .logo span { color: var(--text); }
+nav ul { list-style: none; display: flex; gap: 2rem; }
+nav a { color: var(--dim); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+nav a:hover { color: var(--text); }
+.nav-cta {
+  background: var(--accent); color: #fff !important; padding: 8px 20px;
+  border-radius: 8px; font-weight: 600; font-size: 0.85rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.nav-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow); }
+
+/* ── Hero ── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 2rem 80px;
+  position: relative;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 6px 16px; border-radius: 100px;
+  font-size: 0.85rem; color: var(--dim);
+  margin-bottom: 2rem;
+}
+.hero-badge .dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; }
+.hero h1 {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 800; line-height: 1.1;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero p { font-size: 1.25rem; color: var(--dim); max-width: 600px; margin-bottom: 2.5rem; }
+.hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.btn {
+  padding: 14px 28px; border-radius: 10px; font-size: 1rem; font-weight: 600;
+  text-decoration: none; transition: all 0.2s; cursor: pointer; border: none;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow); }
+.btn-secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); }
+
+/* ── Terminal Demo ── */
+.terminal-demo {
+  max-width: 800px; margin: 4rem auto 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  text-align: left; font-size: 0.9rem;
+}
+.terminal-bar {
+  background: var(--panel); padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+.terminal-dot.r { background: #ff5f57; }
+.terminal-dot.y { background: #ffbd2e; }
+.terminal-dot.g { background: #28c840; }
+.terminal-bar span { color: var(--dim); font-size: 0.8rem; margin-left: 8px; }
+.terminal-body { padding: 20px; font-family: 'SF Mono', 'Fira Code', monospace; line-height: 1.8; }
+.terminal-body .cmd { color: var(--green); }
+.terminal-body .reasoning { color: var(--cyan); }
+.terminal-body .answer { color: var(--text); }
+.terminal-body .stats { color: var(--dim); }
+
+/* ── Sections ── */
+section { padding: 100px 2rem; }
+.section-inner { max-width: 1100px; margin: 0 auto; }
+.section-label {
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--accent); margin-bottom: 0.5rem;
+}
+.section-title {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 700; margin-bottom: 1rem;
+}
+.section-desc { color: var(--dim); font-size: 1.1rem; max-width: 600px; margin-bottom: 3rem; }
+
+/* ── Feature Grid ── */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+.feature-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 2rem;
+  transition: border-color 0.3s, transform 0.3s;
+}
+.feature-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+.feature-card p { color: var(--dim); font-size: 0.95rem; }
+
+/* ── Modes ── */
+.modes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+.mode-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1.5rem;
+  transition: border-color 0.3s;
+}
+.mode-card:hover { border-color: var(--accent); }
+.mode-card h4 { color: var(--accent); margin-bottom: 0.5rem; }
+.mode-card p { color: var(--dim); font-size: 0.9rem; }
+
+/* ── Challenges Table ── */
+.challenges-table {
+  width: 100%; border-collapse: collapse;
+  background: var(--surface); border-radius: var(--radius);
+  overflow: hidden; border: 1px solid var(--border);
+}
+.challenges-table th {
+  background: var(--panel); padding: 14px 20px;
+  text-align: left; font-size: 0.85rem; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--dim); border-bottom: 1px solid var(--border);
+}
+.challenges-table td { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+.challenges-table tr:last-child td { border-bottom: none; }
+.challenges-table tr:hover { background: var(--accent-glow); }
+.diff {
+  display: inline-block; padding: 2px 10px; border-radius: 100px;
+  font-size: 0.75rem; font-weight: 600;
+}
+.diff-easy { background: rgba(76, 175, 80, 0.15); color: var(--green); }
+.diff-medium { background: rgba(255, 189, 46, 0.15); color: #ffbd2e; }
+.diff-hard { background: rgba(255, 95, 87, 0.15); color: #ff5f57; }
+.diff-extreme { background: rgba(108, 99, 255, 0.15); color: var(--accent); }
+
+/* ── Code Install ── */
+.install-block {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 2rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.95rem; line-height: 2;
+}
+.install-block .comment { color: var(--dim); }
+.install-block .cmd { color: var(--green); }
+.install-block .flag { color: var(--cyan); }
+
+/* ── Stats ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem; margin-bottom: 3rem;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 2rem; text-align: center;
+}
+.stat-num {
+  font-size: 3rem; font-weight: 800; color: var(--accent);
+  line-height: 1;
+}
+.stat-label { color: var(--dim); font-size: 0.9rem; margin-top: 0.5rem; }
+
+/* ── Footer ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards;
+}
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  nav ul { display: none; }
+  .terminal-body { font-size: 0.75rem; }
+  .challenges-table { font-size: 0.8rem; }
+  .challenges-table td, .challenges-table th { padding: 8px 12px; }
+  section { padding: 60px 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up { animation: none; opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="logo">🧠 MiMo <span>Reasoning Playground</span></div>
+  <ul>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#modes">Modes</a></li>
+    <li><a href="#challenges">Challenges</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="https://github.com/ertesemedo04-dev/mimo-reasoning-playground" class="nav-cta" target="_blank">GitHub →</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge fade-up"><span class="dot"></span> Powered by Xiaomi MiMo v2.5 Pro</div>
+  <h1 class="fade-up delay-1">Watch AI Think<br>In Real Time</h1>
+  <p class="fade-up delay-2">Interactive reasoning exploration tool. See every thought step, compare reasoning modes, and stress-test with built-in challenges.</p>
+  <div class="hero-actions fade-up delay-3">
+    <a href="#install" class="btn btn-primary">Get Started</a>
+    <a href="https://github.com/ertesemedo04-dev/mimo-reasoning-playground" class="btn btn-secondary" target="_blank">View on GitHub</a>
+  </div>
+
+  <div class="terminal-demo fade-up delay-4">
+    <div class="terminal-bar">
+      <div class="terminal-dot r"></div>
+      <div class="terminal-dot y"></div>
+      <div class="terminal-dot g"></div>
+      <span>terminal — mimo-playground</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="cmd">$ mimo-playground run logic-001</span></div>
+      <br>
+      <div><span class="reasoning">🧠 The Missing Dollar — Logic puzzle</span></div>
+      <div><span class="reasoning">  Let me carefully analyze the math...</span></div>
+      <div><span class="reasoning">  The key insight: $27 already INCLUDES</span></div>
+      <div><span class="reasoning">  the bellboy's $2. There is no missing dollar.</span></div>
+      <br>
+      <div><span class="answer">💡 The trick is in the misleading framing.</span></div>
+      <div><span class="answer">  $27 paid = $25 hotel + $2 bellboy. Correct.</span></div>
+      <br>
+      <div><span class="stats">📊 847ms | 342 tokens | 3 reasoning steps</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">How MiMo Thinks</h2>
+    <p class="section-desc">MiMo v2.5 Pro exposes its chain-of-thought reasoning. This playground makes it visible.</p>
+
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>Real-Time Reasoning Trace</h3>
+        <p>Watch the model's thinking process stream live — every assumption, every self-correction, every logical step.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚖️</div>
+        <h3>Mode Comparison</h3>
+        <p>Run the same prompt through Step-by-Step, Socratic, Adversarial, ELI5, and Academic reasoning styles side by side.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>11 Built-in Challenges</h3>
+        <p>Logic puzzles, math proofs, code debugging, philosophy, crypto analysis, and constrained creative tasks.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <h3>Web UI + CLI</h3>
+        <p>Gradio web interface with dark theme for visual exploration. CLI for power users and scripting.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Token Metrics</h3>
+        <p>Track reasoning tokens, completion tokens, latency, and step count for every run.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <h3>Async Streaming API</h3>
+        <p>Python client with async generators. Integrate reasoning traces into your own apps.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modes -->
+<section id="modes" style="background: var(--surface);">
+  <div class="section-inner">
+    <div class="section-label">Reasoning Modes</div>
+    <h2 class="section-title">Six Ways to Think</h2>
+    <p class="section-desc">Same prompt, different reasoning strategies. Compare how the model's thinking changes.</p>
+
+    <div class="modes-grid">
+      <div class="mode-card">
+        <h4>Default</h4>
+        <p>MiMo's natural reasoning style. Balanced exploration with self-correction.</p>
+      </div>
+      <div class="mode-card">
+        <h4>Step-by-Step</h4>
+        <p>Explicit sequential breakdown. Numbered steps, clear progression from premise to conclusion.</p>
+      </div>
+      <div class="mode-card">
+        <h4>Socratic</h4>
+        <p>Self-questioning approach. The model asks itself clarifying questions and challenges assumptions.</p>
+      </div>
+      <div class="mode-card">
+        <h4>Adversarial</h4>
+        <p>Argues both FOR and AGAINST before synthesizing. Strongest for controversial or nuanced topics.</p>
+      </div>
+      <div class="mode-card">
+        <h4>ELI5</h4>
+        <p>Simple analogies and concrete examples. Great for understanding complex concepts quickly.</p>
+      </div>
+      <div class="mode-card">
+        <h4>Academic</h4>
+        <p>Formal logical structure, precise definitions, citations. For rigorous analysis.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Challenges -->
+<section id="challenges">
+  <div class="section-inner">
+    <div class="section-label">Challenges</div>
+    <h2 class="section-title">Test Reasoning Limits</h2>
+    <p class="section-desc">Pre-built problems designed to stress-test different reasoning capabilities.</p>
+
+    <table class="challenges-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Challenge</th>
+          <th>Category</th>
+          <th>Difficulty</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>logic-001</code></td><td>The Missing Dollar</td><td>Logic</td><td><span class="diff diff-medium">medium</span></td></tr>
+        <tr><td><code>logic-002</code></td><td>Monty Hall Problem</td><td>Logic</td><td><span class="diff diff-medium">medium</span></td></tr>
+        <tr><td><code>math-001</code></td><td>Infinite Series</td><td>Math</td><td><span class="diff diff-hard">hard</span></td></tr>
+        <tr><td><code>math-002</code></td><td>Combinatorial Proof</td><td>Math</td><td><span class="diff diff-hard">hard</span></td></tr>
+        <tr><td><code>code-001</code></td><td>Find the Bug</td><td>Code</td><td><span class="diff diff-medium">medium</span></td></tr>
+        <tr><td><code>code-002</code></td><td>Algorithm Complexity</td><td>Code</td><td><span class="diff diff-hard">hard</span></td></tr>
+        <tr><td><code>philo-001</code></td><td>Ship of Theseus</td><td>Philosophy</td><td><span class="diff diff-medium">medium</span></td></tr>
+        <tr><td><code>philo-002</code></td><td>Trolley Problem Variants</td><td>Philosophy</td><td><span class="diff diff-hard">hard</span></td></tr>
+        <tr><td><code>real-001</code></td><td>Crypto Market Analysis</td><td>Analysis</td><td><span class="diff diff-hard">hard</span></td></tr>
+        <tr><td><code>real-002</code></td><td>System Design</td><td>Engineering</td><td><span class="diff diff-extreme">extreme</span></td></tr>
+        <tr><td><code>creative-001</code></td><td>Constraint Poetry</td><td>Creative</td><td><span class="diff diff-medium">medium</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Stats -->
+<section style="background: var(--surface);">
+  <div class="section-inner">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num">11</div>
+        <div class="stat-label">Challenges</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">6</div>
+        <div class="stat-label">Reasoning Modes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">2</div>
+        <div class="stat-label">Interfaces (Web + CLI)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">11</div>
+        <div class="stat-label">Tests Passing</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Install -->
+<section id="install">
+  <div class="section-inner">
+    <div class="section-label">Get Started</div>
+    <h2 class="section-title">Install in 30 Seconds</h2>
+    <p class="section-desc">Python 3.10+ required. One command to install, one to run.</p>
+
+    <div class="install-block">
+      <div><span class="comment"># Clone the repo</span></div>
+      <div><span class="cmd">git clone</span> <span class="flag">git@github.com:ertesemedo04-dev/mimo-reasoning-playground.git</span></div>
+      <div><span class="cmd">cd</span> mimo-reasoning-playground</div>
+      <br>
+      <div><span class="comment"># Install</span></div>
+      <div><span class="cmd">pip install</span> <span class="flag">-e .</span></div>
+      <br>
+      <div><span class="comment"># Configure API key</span></div>
+      <div><span class="cmd">cp</span> .env.example .env</div>
+      <div><span class="comment"># Edit .env with your MIMO_API_KEY</span></div>
+      <br>
+      <div><span class="comment"># Launch web UI</span></div>
+      <div><span class="cmd">mimo-playground</span> <span class="flag">web</span></div>
+      <br>
+      <div><span class="comment"># Or use CLI</span></div>
+      <div><span class="cmd">mimo-playground</span> <span class="flag">list</span> <span class="comment"># see all challenges</span></div>
+      <div><span class="cmd">mimo-playground</span> <span class="flag">run logic-001</span> <span class="comment"># run a challenge</span></div>
+      <div><span class="cmd">mimo-playground</span> <span class="flag">chat</span> <span class="comment"># interactive mode</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- API Usage -->
+<section style="background: var(--surface);">
+  <div class="section-inner">
+    <div class="section-label">API</div>
+    <h2 class="section-title">Use in Your Code</h2>
+    <p class="section-desc">Async Python client with streaming support. Integrate reasoning traces into any app.</p>
+
+    <div class="install-block">
+      <div><span class="cmd">import</span> asyncio</div>
+      <div><span class="cmd">from</span> mimo_playground.client <span class="cmd">import</span> MiMoClient</div>
+      <br>
+      <div>client = MiMoClient(</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;api_base=<span class="flag">"https://api.xiaomi.com/v1"</span>,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;api_key=<span class="flag">"your-key"</span>,</div>
+      <div>)</div>
+      <br>
+      <div><span class="cmd">async def</span> main():</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">async for</span> event <span class="cmd">in</span> client.stream_reasoning(<span class="flag">"Explain quantum entanglement"</span>):</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">if</span> event[<span class="flag">"type"</span>] == <span class="flag">"reasoning"</span>:</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(event[<span class="flag">"content"</span>], end=<span class="flag">""</span>)</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">elif</span> event[<span class="flag">"type"</span>] == <span class="flag">"answer"</span>:</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;print(event[<span class="flag">"content"</span>], end=<span class="flag">""</span>)</div>
+      <br>
+      <div>asyncio.run(main())</div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>
+    🧠 MiMo Reasoning Playground · Built with
+    <a href="https://github.com/XiaomiMiMo" target="_blank">Xiaomi MiMo v2.5 Pro</a>
+  </p>
+  <p style="margin-top: 0.5rem;">
+    <a href="https://github.com/ertesemedo04-dev/mimo-reasoning-playground" target="_blank">GitHub</a>
+    · MIT License
+  </p>
+</footer>
+
+<script>
+// Intersection Observer for fade-in
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.feature-card, .mode-card, .stat-card, .install-block').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  observer.observe(el);
+});
+
+// Smooth scroll for nav links
+document.querySelectorAll('nav a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+
+</body>
+</html>
